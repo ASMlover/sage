@@ -26,7 +26,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
-#include "callable.hh"
+#include "../compile/callable.hh"
 
 namespace sage {
 

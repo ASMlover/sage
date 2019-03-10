@@ -26,8 +26,8 @@
 // POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include "../common/errors.hh"
+#include "../builtins/builtins.hh"
 #include "callable.hh"
-#include "builtins.hh"
 #include "environment.hh"
 #include "interpret_helper.hh"
 #include "interpreter.hh"
