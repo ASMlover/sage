@@ -1,0 +1,20 @@
+
+print ">>>>>>>>> test for class declaration"
+
+class Entity {
+
+  fn repr() {
+    print "<class Entity>"
+  }
+
+  fn call_method(args) {
+    print "call_method:", args
+  }
+
+}
+
+print "display the class: ", Entity
+
+class Dummy {
+}
+print Dummy
