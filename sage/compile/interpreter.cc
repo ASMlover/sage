@@ -41,16 +41,6 @@ Interpreter::Interpreter(ErrorReport& err_report)
   globals_->define("clock", Value(std::make_shared<NatClock>()));
 }
 
-void Interpreter::interpret(const ExprPtr& expression) {
-  try {
-    Value value = evaluate(expression);
-    std::cout << value << std::endl;
-  }
-  catch (const RuntimeError& e) {
-    err_report_.error(e.get_token(), e.get_message());
-  }
-}
-
 void Interpreter::interpret(const std::vector<StmtPtr>& statements) {
   try {
     for (auto& stmt : statements)
