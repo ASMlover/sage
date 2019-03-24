@@ -121,7 +121,6 @@ class Parser : private UnCopyable {
 public:
   Parser(ErrorReport& err_report, const std::vector<Token>& tokens);
 
-  ExprPtr parse(void);
   std::vector<StmtPtr> parse_stmts(void);
 };
 
