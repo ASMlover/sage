@@ -27,23 +27,17 @@
 #pragma once
 
 #include <string>
-#include <vector>
 #include "../common/common.hh"
 #include "token.hh"
 
 namespace sage {
 
-class ErrorReport;
-
 class Lexer : private UnCopyable {
-  ErrorReport& err_report_;
-
   const std::string& source_bytes_;
   std::string fname_;
   std::size_t begpos_{};
   std::size_t curpos_{};
   int lineno_{1};
-  std::vector<Token> tokens_;
 
   bool is_alpha(char c) const;
   bool is_alnum(char c) const;
@@ -54,18 +48,18 @@ class Lexer : private UnCopyable {
   char peek(void) const;
   char peek_next(void) const;
 
-  void next_token(void);
-  void make_token(TokenKind kind);
-  void make_token(TokenKind kind, const std::string& literal);
+  Token make_token(TokenKind kind);
+  Token make_token(TokenKind kind, const std::string& literal);
+  Token error_token(const std::string& message);
+  void skip_whitespace(void);
   void skip_comment(void);
-  void make_string(void);
-  void make_numeric(void);
-  void make_identifier(void);
+  Token make_string(void);
+  Token make_numeric(void);
+  Token make_identifier(void);
 public:
-  Lexer(ErrorReport& err_report,
-      const std::string& source_bytes, const std::string& fname = "");
+  Lexer(const std::string& source_bytes, const std::string& fname = "");
 
-  std::vector<Token>& parse_tokens(void);
+  Token next_token(void);
 };
 
 }

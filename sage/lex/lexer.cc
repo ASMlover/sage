@@ -25,26 +25,84 @@
 // ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 #include <cctype>
-#include "../common/errors.hh"
 #include "lexer.hh"
 
 namespace sage {
 
-Lexer::Lexer(ErrorReport& err_report,
-    const std::string& source_bytes, const std::string& fname)
-  : err_report_(err_report)
-  , source_bytes_(source_bytes)
+Lexer::Lexer(const std::string& source_bytes, const std::string& fname)
+  : source_bytes_(source_bytes)
   , fname_(fname) {
 }
 
-std::vector<Token>& Lexer::parse_tokens(void) {
-  while (!is_end()) {
-    begpos_ = curpos_;
-    next_token();
+Token Lexer::next_token(void) {
+  skip_whitespace();
+
+  begpos_ = curpos_;
+  if (is_end())
+    return make_token(TokenKind::TK_EOF);
+
+  char c = advance();
+  if (std::isdigit(c))
+    return make_numeric();
+  if (is_alpha(c))
+    return make_identifier();
+
+  switch (c) {
+  case '[': return make_token(TokenKind::TK_LSQUARE);
+  case ']': return make_token(TokenKind::TK_RSQUARE);
+  case '(': return make_token(TokenKind::TK_LPAREN);
+  case ')': return make_token(TokenKind::TK_RPAREN);
+  case '{': return make_token(TokenKind::TK_LBRACE);
+  case '}': return make_token(TokenKind::TK_RBRACE);
+  case '.':
+    if (match('.')) {
+      return make_token(match('.')
+          ? TokenKind::TK_PERIODPERIODPERIOD
+          : TokenKind::TK_PERIODPERIOD);
+    }
+    else {
+      return make_token(TokenKind::TK_PERIOD);
+    }
+  case ',': return make_token(TokenKind::TK_COMMA);
+  case ':': return make_token(TokenKind::TK_COLON);
+  case ';': return make_token(TokenKind::TK_SEMI);
+  case '+':
+    return make_token(match('=')
+        ? TokenKind::TK_PLUSEQUAL : TokenKind::TK_PLUS);
+  case '-':
+    return make_token(match('=')
+        ? TokenKind::TK_MINUSEQUAL : TokenKind::TK_MINUS);
+  case '*':
+    return make_token(match('=')
+        ? TokenKind::TK_STAREQUAL : TokenKind::TK_STAR);
+  case '/':
+    return make_token(match('=')
+        ? TokenKind::TK_SLASHEQUAL : TokenKind::TK_SLASH);
+  case '%':
+    return make_token(match('=')
+        ? TokenKind::TK_PERCENTEQUAL : TokenKind::TK_PERCENT);
+  case '<':
+    return make_token(match('=')
+        ? TokenKind::TK_LESSEQUAL : TokenKind::TK_LESS);
+  case '>':
+    return make_token(match('>')
+        ? TokenKind::TK_GREATEREQUAL : TokenKind::TK_GREATER);
+  case '!':
+    return make_token(match('=')
+        ? TokenKind::TK_EXCLAIMEQUAL : TokenKind::TK_EXCLAIM);
+  case '=':
+    return make_token(match('=')
+        ? TokenKind::TK_EQUALEQUAL : TokenKind::TK_EQUAL);
+  case '\n':
+    {
+      auto tok = make_token(TokenKind::TK_NL);
+      ++lineno_;
+      return tok;
+    }
+  case '"': return make_string();
   }
 
-  tokens_.push_back(Token(TokenKind::TK_EOF, "", fname_, lineno_));
-  return tokens_;
+  return error_token("unexpected charactor");
 }
 
 bool Lexer::is_alpha(char c) const {
@@ -87,85 +145,31 @@ char Lexer::peek_next(void) const {
   return source_bytes_[curpos_ + 1];
 }
 
-void Lexer::next_token(void) {
-  char c = advance();
-  switch (c) {
-  case '[': make_token(TokenKind::TK_LSQUARE); break;
-  case ']': make_token(TokenKind::TK_RSQUARE); break;
-  case '(': make_token(TokenKind::TK_LPAREN); break;
-  case ')': make_token(TokenKind::TK_RPAREN); break;
-  case '{': make_token(TokenKind::TK_LBRACE); break;
-  case '}': make_token(TokenKind::TK_RBRACE); break;
-  case '.':
-    if (match('.')) {
-      make_token(match('.')
-          ? TokenKind::TK_PERIODPERIODPERIOD
-          : TokenKind::TK_PERIODPERIOD);
+Token Lexer::make_token(TokenKind kind) {
+  return make_token(kind, gen_literal(begpos_, curpos_));
+}
+
+Token Lexer::make_token(TokenKind kind, const std::string& literal) {
+  return Token(kind, literal, fname_, lineno_);
+}
+
+Token Lexer::error_token(const std::string& message) {
+  return Token(TokenKind::TK_ERROR, message, fname_, lineno_);
+}
+
+void Lexer::skip_whitespace(void) {
+  for (;;) {
+    char c = peek();
+    switch (c) {
+    case ' ':
+    case '\r':
+    case '\t':
+      // ignore whitespaces
+      advance(); break;
+    case '#': skip_comment(); break;
+    default: return;
     }
-    else {
-      make_token(TokenKind::TK_PERIOD);
-    }
-    break;
-  case ',': make_token(TokenKind::TK_COMMA); break;
-  case ':': make_token(TokenKind::TK_COLON); break;
-  case ';': make_token(TokenKind::TK_SEMI); break;
-  case '+':
-    make_token(match('=') ? TokenKind::TK_PLUSEQUAL : TokenKind::TK_PLUS);
-    break;
-  case '-':
-    make_token(match('=') ? TokenKind::TK_MINUSEQUAL : TokenKind::TK_MINUS);
-    break;
-  case '*':
-    make_token(match('=') ? TokenKind::TK_STAREQUAL : TokenKind::TK_STAR);
-    break;
-  case '/':
-    make_token(match('=') ? TokenKind::TK_SLASHEQUAL : TokenKind::TK_SLASH);
-    break;
-  case '%':
-    make_token(match('=') ? TokenKind::TK_PERCENTEQUAL : TokenKind::TK_PERCENT);
-    break;
-  case '<':
-    make_token(match('=') ? TokenKind::TK_LESSEQUAL : TokenKind::TK_LESS);
-    break;
-  case '>':
-    make_token(match('=') ? TokenKind::TK_GREATEREQUAL : TokenKind::TK_GREATER);
-    break;
-  case '!':
-    make_token(match('=') ? TokenKind::TK_EXCLAIMEQUAL : TokenKind::TK_EXCLAIM);
-    break;
-  case '=':
-    make_token(match('=') ? TokenKind::TK_EQUALEQUAL : TokenKind::TK_EQUAL);
-    break;
-  case '#': skip_comment(); break;
-  case ' ':
-  case '\r':
-  case '\t':
-    // ignore whitespaces
-    break;
-  case '\n': make_token(TokenKind::TK_NL, "NL"); ++lineno_; break;
-  case '"': make_string(); break;
-  default:
-    if (std::isdigit(c)) {
-      make_numeric();
-    }
-    else if (is_alpha(c)) {
-      make_identifier();
-    }
-    else {
-      err_report_.error(fname_, lineno_, "unexpected charactor");
-      return;
-    }
-    break;
   }
-}
-
-void Lexer::make_token(TokenKind kind) {
-  auto literal = gen_literal(begpos_, curpos_);
-  tokens_.push_back(Token(kind, literal, fname_, lineno_));
-}
-
-void Lexer::make_token(TokenKind kind, const std::string& literal) {
-  tokens_.push_back(Token(kind, literal, fname_, lineno_));
 }
 
 void Lexer::skip_comment(void) {
@@ -173,7 +177,7 @@ void Lexer::skip_comment(void) {
     advance();
 }
 
-void Lexer::make_string(void) {
+Token Lexer::make_string(void) {
   std::string literal;
   while (!is_end() && peek() != '"') {
     char c = peek();
@@ -200,19 +204,17 @@ void Lexer::make_string(void) {
   }
 
   // unterminated string
-  if (is_end()) {
-    err_report_.error(fname_, lineno_, "unterminated string");
-    return;
-  }
+  if (is_end())
+    return error_token("unterminated string");
 
   // the closing "
   advance();
 
   // trim the surrounding string
-  make_token(TokenKind::TK_STRINGLITERAL, literal);
+  return make_token(TokenKind::TK_STRINGLITERAL, literal);
 }
 
-void Lexer::make_numeric(void) {
+Token Lexer::make_numeric(void) {
   while (std::isdigit(peek()))
     advance();
 
@@ -225,20 +227,17 @@ void Lexer::make_numeric(void) {
     kind = TokenKind::TK_DECIMALCONST;
   }
 
-  if (is_alpha(peek())) {
-    err_report_.error(fname_, lineno_, "invalid numeric or identifier");
-    return;
-  }
-
-  make_token(kind);
+  if (is_alpha(peek()))
+    return error_token("invalid numeric or identifier");
+  return make_token(kind);
 }
 
-void Lexer::make_identifier(void) {
+Token Lexer::make_identifier(void) {
   while (is_alnum(peek()))
     advance();
 
   auto literal = gen_literal(begpos_, curpos_);
-  make_token(get_keyword_kind(literal.c_str()), literal);
+  return make_token(get_keyword_kind(literal.c_str()), literal);
 }
 
 }
