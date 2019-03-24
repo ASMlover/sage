@@ -34,7 +34,7 @@
 namespace sage {
 
 class Token : public Copyable {
-  TokenKind kind_;
+  TokenKind kind_{TokenKind::TK_UNKNOWN};
   std::string literal_;
   std::string fname_;
   int lineno_{1};
