@@ -35,10 +35,13 @@ namespace sage {
 
 class Token : public Copyable {
   TokenKind kind_;
-  const std::string literal_;
-  const std::string fname_;
+  std::string literal_;
+  std::string fname_;
   int lineno_{1};
 public:
+  Token(void) {
+  }
+
   Token(TokenKind kind,
       const std::string& literal, const std::string& fname, int lineno)
     : kind_(kind)
