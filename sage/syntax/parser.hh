@@ -29,6 +29,7 @@
 #include <vector>
 #include "../common/common.hh"
 #include "../lex/token_kinds.hh"
+#include "../lex/token.hh"
 #include "ast.hh"
 
 namespace sage {
@@ -70,24 +71,26 @@ namespace sage {
 //                 | "true" | "false" | "nil" | "self"
 //                 | "(" expression ")" | "super" "." IDENTIFIER ;
 
-class Token;
+class Lexer;
 class ErrorReport;
 
 class Parser : private UnCopyable {
   ErrorReport& err_report_;
-  std::vector<Token> tokens_;
-  std::size_t curpos_{};
+  Lexer& lex_;
+  Token prev_;
+  Token peek_;
 
   static constexpr std::size_t kMaxArguments = 64;
 
-  bool is_end(void) const;
-  const Token& peek(void) const;
-  const Token& prev(void) const;
-  const Token& advance(void);
+  inline bool is_end(void) const { return peek_.get_kind() == TokenKind::TK_EOF; }
+  inline Token peek(void) const { return peek_; }
+  inline Token prev(void) const { return prev_; }
+
+  Token advance(void);
   bool check(TokenKind kind) const;
   bool match(const std::initializer_list<TokenKind>& kinds);
-  const Token& consume(TokenKind kind, const std::string& message);
-  const Token& consume(const std::initializer_list<TokenKind>& kinds,
+  Token consume(TokenKind kind, const std::string& message);
+  Token consume(const std::initializer_list<TokenKind>& kinds,
       const std::string& message);
 
   void synchronize(void);
@@ -119,7 +122,7 @@ class Parser : private UnCopyable {
   ExprPtr call(void);
   ExprPtr primary(void);
 public:
-  Parser(ErrorReport& err_report, const std::vector<Token>& tokens);
+  Parser(ErrorReport& err_report, Lexer& lex);
 
   std::vector<StmtPtr> parse_stmts(void);
 };

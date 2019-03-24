@@ -25,19 +25,21 @@
 // ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 #include "../common/errors.hh"
-#include "../lex/token.hh"
+#include "../lex/lexer.hh"
 #include "parser.hh"
 
 namespace sage {
 
-Parser::Parser(ErrorReport& err_report, const std::vector<Token>& tokens)
-  : err_report_(err_report), tokens_(tokens) {
+Parser::Parser(ErrorReport& err_report, Lexer& lex)
+  : err_report_(err_report), lex_(lex) {
 }
 
 std::vector<StmtPtr> Parser::parse_stmts(void) {
   // program -> declaration* EOF ;
 
   std::vector<StmtPtr> stmts;
+
+  advance();
   while (!is_end()) {
     if (!ignore_newlines())
       stmts.push_back(declaration());
@@ -45,21 +47,14 @@ std::vector<StmtPtr> Parser::parse_stmts(void) {
   return stmts;
 }
 
-bool Parser::is_end(void) const {
-  return peek().get_kind() == TokenKind::TK_EOF;
-}
+Token Parser::advance(void) {
+  if (!is_end()) {
+    prev_ = peek_;
+    peek_ = lex_.next_token();
 
-const Token& Parser::peek(void) const {
-  return tokens_[curpos_];
-}
-
-const Token& Parser::prev(void) const {
-  return tokens_[curpos_ - 1];
-}
-
-const Token& Parser::advance(void) {
-  if (!is_end())
-    ++curpos_;
+    if (peek_.get_kind() == TokenKind::TK_ERROR)
+      throw RuntimeError(peek_, peek_.get_literal());
+  }
   return prev();
 }
 
@@ -77,14 +72,14 @@ bool Parser::match(const std::initializer_list<TokenKind>& kinds) {
   return false;
 }
 
-const Token& Parser::consume(TokenKind kind, const std::string& message) {
+Token Parser::consume(TokenKind kind, const std::string& message) {
   if (check(kind))
     return advance();
 
   throw RuntimeError(peek(), message);
 }
 
-const Token& Parser::consume(
+Token Parser::consume(
     const std::initializer_list<TokenKind>& kinds, const std::string& message) {
   for (auto kind : kinds) {
     if (check(kind))
