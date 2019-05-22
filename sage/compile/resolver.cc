@@ -67,7 +67,7 @@ void Resolver::resolve_local(const Token& name, const ExprPtr& expr) {
   for (int i = n; i >= 0; --i) {
     auto& scope = scopes_[i];
     if (scope.find(name.get_literal()) != scope.end()) {
-      interp_->resolve(expr, n - 1);
+      interp_->resolve(expr, n - i);
       return;
     }
   }
