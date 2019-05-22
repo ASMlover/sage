@@ -77,7 +77,8 @@ void Sage::eval_with_repl(void) {
 }
 
 void Sage::run(const std::string& source_bytes, const std::string& fname) {
-  Parser parser(err_report_, Lexer(source_bytes, fname));
+  Lexer lex(source_bytes, fname);
+  Parser parser(err_report_, lex);
   auto stmts = parser.parse_stmts();
   if (err_report_.had_error())
     std::abort();
