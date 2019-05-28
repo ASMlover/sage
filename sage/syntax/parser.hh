@@ -124,7 +124,8 @@ class Parser : private UnCopyable {
 public:
   Parser(ErrorReport& err_report, Lexer& lex);
 
-  std::vector<StmtPtr> parse_stmts(void);
+  void prepare(void);
+  StmtPtr parse(void);
 };
 
 }

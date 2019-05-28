@@ -34,18 +34,33 @@ Parser::Parser(ErrorReport& err_report, Lexer& lex)
   : err_report_(err_report), lex_(lex) {
 }
 
-std::vector<StmtPtr> Parser::parse_stmts(void) {
-  // program -> declaration* EOF ;
-
-  std::vector<StmtPtr> stmts;
-
+void Parser::prepare(void) {
   advance();
-  while (!is_end()) {
-    if (!ignore_newlines())
-      stmts.push_back(declaration());
-  }
-  return stmts;
 }
+
+StmtPtr Parser::parse(void) {
+  // skip NL
+  while (ignore_newlines()) {
+  }
+
+  if (is_end())
+    return nullptr;
+
+  return declaration();
+}
+
+// std::vector<StmtPtr> Parser::parse_stmts(void) {
+//   // program -> declaration* EOF ;
+//
+//   std::vector<StmtPtr> stmts;
+//
+//   advance();
+//   while (!is_end()) {
+//     if (!ignore_newlines())
+//       stmts.push_back(declaration());
+//   }
+//   return stmts;
+// }
 
 Token Parser::advance(void) {
   if (!is_end()) {

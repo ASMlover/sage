@@ -90,7 +90,7 @@ class Resolver
 public:
   Resolver(ErrorReport& err_report, const InterpreterPtr& interp);
 
-  void invoke_resolve(const std::vector<StmtPtr>& stmts);
+  void invoke_resolve(const StmtPtr& stmt);
 };
 
 }

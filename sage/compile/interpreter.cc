@@ -27,8 +27,11 @@
 #include <iostream>
 #include "../common/errors.hh"
 #include "../builtins/builtins.hh"
+#include "../lex/lexer.hh"
+#include "../syntax/parser.hh"
 #include "callable.hh"
 #include "environment.hh"
+#include "resolver.hh"
 #include "interpret_helper.hh"
 #include "interpreter.hh"
 
@@ -41,15 +44,37 @@ Interpreter::Interpreter(ErrorReport& err_report)
   globals_->define("clock", Value(std::make_shared<NatClock>()));
 }
 
-void Interpreter::interpret(const std::vector<StmtPtr>& statements) {
+void Interpreter::interpret(
+    const std::string& fname, const std::string& source_bytes) {
+  Lexer lex(source_bytes, fname);
+  Parser parser(err_report_, lex);
+  auto resolver = std::make_shared<Resolver>(err_report_, shared_from_this());
+
   try {
-    for (auto& stmt : statements)
+    parser.prepare();
+    for (;;) {
+      StmtPtr stmt = parser.parse();
+      if (!stmt)
+        break;
+
+      resolver->invoke_resolve(stmt);
       evaluate(stmt);
+    }
   }
   catch (const RuntimeError& e) {
     err_report_.error(e.get_token(), e.get_message());
   }
 }
+
+// void Interpreter::interpret(const std::vector<StmtPtr>& statements) {
+//   try {
+//     for (auto& stmt : statements)
+//       evaluate(stmt);
+//   }
+//   catch (const RuntimeError& e) {
+//     err_report_.error(e.get_token(), e.get_message());
+//   }
+// }
 
 Value Interpreter::evaluate(const ExprPtr& expr) {
   expr->accept(shared_from_this());

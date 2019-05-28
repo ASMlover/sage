@@ -35,13 +35,8 @@ Resolver::Resolver(ErrorReport& err_report, const InterpreterPtr& interp)
   , interp_(interp) {
 }
 
-void Resolver::invoke_resolve(const std::vector<StmtPtr>& stmts) {
-  try {
-    resolve(stmts);
-  }
-  catch (const RuntimeError& r) {
-    err_report_.error(r.get_token(), r.get_message());
-  }
+void Resolver::invoke_resolve(const StmtPtr& stmt) {
+  resolve(stmt);
 }
 
 void Resolver::resolve(const ExprPtr& expr) {

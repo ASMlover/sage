@@ -27,9 +27,6 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include "./lex/lexer.hh"
-#include "./syntax/parser.hh"
-#include "./compile/resolver.hh"
 #include "./compile/interpreter.hh"
 #include "sage.hh"
 
@@ -77,18 +74,7 @@ void Sage::eval_with_repl(void) {
 }
 
 void Sage::run(const std::string& source_bytes, const std::string& fname) {
-  Lexer lex(source_bytes, fname);
-  Parser parser(err_report_, lex);
-  auto stmts = parser.parse_stmts();
-  if (err_report_.had_error())
-    std::abort();
-
-  auto resolver = std::make_shared<Resolver>(err_report_, interp_);
-  resolver->invoke_resolve(stmts);
-  if (err_report_.had_error())
-    std::abort();
-
-  interp_->interpret(stmts);
+  interp_->interpret(fname, source_bytes);
   if (err_report_.had_error())
     std::abort();
 }

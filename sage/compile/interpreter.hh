@@ -88,7 +88,7 @@ class Interpreter
 public:
   Interpreter(ErrorReport& err_report);
 
-  void interpret(const std::vector<StmtPtr>& statements);
+  void interpret(const std::string& fname, const std::string& source_bytes);
 
   EnvironmentPtr get_globals(void) const {
     return globals_;
